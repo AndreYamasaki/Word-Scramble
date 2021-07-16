@@ -9,110 +9,126 @@ import UIKit
 
 class ViewController: UITableViewController {
     
+    //MARK: - Attributes
+    
     var allWords = [String]()
     var usedWords = [String]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(promptForAnswer))
-        
-        if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
-            if let startWords = try? String(contentsOf: startWordsURL) {
-                allWords = startWords.components(separatedBy: "/n")
+// Challenge 3: Add a left bar button item that calls startGame(), so users can restart with a new word whenever they want to.
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Start game", style: .plain, target: self, action: #selector(startGame))
+
+        if let startWordsPath = Bundle.main.path(forResource: "start", ofType: "txt") {
+            if let startWords = try? String(contentsOfFile: startWordsPath) {
+                allWords = startWords.components(separatedBy: "\n")
             }
-        }
-        if allWords.isEmpty {
+        } else {
             allWords = ["silkworm"]
         }
-        
+
         startGame()
     }
     
-    func startGame() {
+    //MARK: - TableViewDataSource
+
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        
+        return usedWords.count
+    }
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let cell = tableView.dequeueReusableCell(withIdentifier: "Word", for: indexPath)
+        cell.textLabel?.text = usedWords[indexPath.row]
+        return cell
+    }
+
+    @objc func startGame() {
         title = allWords.randomElement()
         usedWords.removeAll(keepingCapacity: true)
         tableView.reloadData()
     }
     
+    //MARK: - Methods
+
     @objc func promptForAnswer() {
         
         let ac = UIAlertController(title: "Enter answer", message: nil, preferredStyle: .alert)
         ac.addTextField()
-        
-        let submitAction = UIAlertAction(title: "Submit", style: .default) { [weak self, weak ac] _ in
-            guard let answer = ac?.textFields?[0].text else {return}
-            self?.submit(answer)
+
+        let submitAction = UIAlertAction(title: "Submit", style: .default) { [unowned self, ac] action in
+            let answer = ac.textFields![0]
+            self.submit(answer: answer.text!)
         }
+
         ac.addAction(submitAction)
+
         present(ac, animated: true)
     }
-    
-    func submit(_ answer: String) {
-        
-        let lowerAnswered = answer.lowercased()
-        
-        let errorTitle: String
-        let errorMessage: String
-        
-        if isPossible(word: lowerAnswered) {
-            if isOriginal(word: lowerAnswered) {
-                if isReal(word: lowerAnswered) {
-                    usedWords.insert(lowerAnswered, at: 0)
-                    
-                    let indexPath = IndexPath(row: 0, section: 0)
-                    tableView.insertRows(at: [indexPath], with: .automatic)
-                    return
-                } else {
-                    errorTitle = "Word not recognized"
-                    errorMessage = "You can't just make them up, you know"
-                }
-            } else {
-                errorTitle = "Word used already"
-                errorMessage = "Be more original"
-            }
-        } else {
-            errorTitle = "Word not possible"
-            errorMessage = "You can't spell that word from \(title!.lowercased())"
-        }
-        let ac = UIAlertController(title: errorTitle, message: errorMessage, preferredStyle: .alert)
-        ac.addAction(UIAlertAction(title: "Ok", style: .default))
-    }
-    
+
     func isPossible(word: String) -> Bool {
         
-        guard var tempWord = title?.lowercased() else { return false }
-        
+        var tempWord = title!.lowercased()
+
         for letter in word {
-            if let position = tempWord.firstIndex(of: letter) {
-                tempWord.remove(at: position)
+            if let position = tempWord.range(of: String(letter)) {
+                tempWord.remove(at: position.lowerBound)
             } else {
                 return false
             }
         }
-        
+
         return true
     }
-    
+
     func isOriginal(word: String) -> Bool {
+        
         return !usedWords.contains(word)
     }
-    
+
     func isReal(word: String) -> Bool {
+        
         let checker = UITextChecker()
-        let range = NSRange(location: 0, length: word.utf16.count)
+        let range = NSMakeRange(0, word.utf16.count)
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
+
         return misspelledRange.location == NSNotFound
     }
-    
-    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return usedWords.count
+
+    func submit(answer: String) {
+        
+        let lowerAnswer = answer.lowercased()
+
+
+        if isPossible(word: lowerAnswer) {
+            if isOriginal(word: lowerAnswer) {
+                if isReal(word: lowerAnswer) {
+                    usedWords.insert(answer, at: 0)
+
+                    let indexPath = IndexPath(row: 0, section: 0)
+                    tableView.insertRows(at: [indexPath], with: .automatic)
+
+                    return
+                } else {
+                    showErrorMessage(errorTitle: "Word not recognised", errorMessage: "You can't just make them up, you know!")
+                }
+            } else {
+                showErrorMessage(errorTitle: "Word used already", errorMessage: "Be more original!")
+            }
+        } else {
+            showErrorMessage(errorTitle: "Word not possible", errorMessage: "You can't spell that word from '\(title!.lowercased())'!")
+        }
     }
     
-    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "Word", for: indexPath)
-        cell.textLabel?.text = usedWords[indexPath.row]
-        return cell
+    // Challenge 2 Refactor all the else statements we just added so that they call a new method called showErrorMessage().
+    func showErrorMessage(errorTitle: String, errorMessage: String) {
+        
+        let ac = UIAlertController(title: errorTitle, message: errorMessage, preferredStyle: .alert)
+        ac.addAction(UIAlertAction(title: "OK", style: .default))
+        present(ac, animated: true)
     }
 }
 
