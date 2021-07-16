@@ -91,7 +91,7 @@ class ViewController: UITableViewController {
 
     func isReal(word: String) -> Bool {
         
-        //Challenge 1: 1. Disallow answers that are shorter than three letters or are just our start word.
+//Challenge 1: Disallow answers that are shorter than three letters or are just our start word.
         guard word.count > 3 else {return false}
         
         let checker = UITextChecker()
@@ -126,7 +126,7 @@ class ViewController: UITableViewController {
         }
     }
     
-    // Challenge 2 Refactor all the else statements we just added so that they call a new method called showErrorMessage().
+// Challenge 2 Refactor all the else statements we just added so that they call a new method called showErrorMessage().
     func showErrorMessage(errorTitle: String, errorMessage: String) {
         
         let ac = UIAlertController(title: errorTitle, message: errorMessage, preferredStyle: .alert)
