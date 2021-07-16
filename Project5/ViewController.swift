@@ -91,6 +91,9 @@ class ViewController: UITableViewController {
 
     func isReal(word: String) -> Bool {
         
+        //Challenge 1: 1. Disallow answers that are shorter than three letters or are just our start word.
+        guard word.count > 3 else {return false}
+        
         let checker = UITextChecker()
         let range = NSMakeRange(0, word.utf16.count)
         let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
